@@ -1,5 +1,6 @@
 package com.example.lifecounting
 
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,13 +15,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
@@ -34,6 +38,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -44,6 +50,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+
         setContent {
             LifeCountingTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
@@ -73,6 +81,7 @@ fun GreetingPreview() {
     }
 }
 
+
 @Preview
 @Composable
 fun CommanderLifeCounterApp() {
@@ -87,6 +96,8 @@ fun CommanderLifeCounterApp() {
 
     var showSettings by remember { mutableStateOf(false) }
 
+    val gridColumns = 2
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -99,18 +110,14 @@ fun CommanderLifeCounterApp() {
                 modifier = Modifier.padding(8.dp)
             )
 
-            // Grid Layout: 2x2 Grid for 4 players
+            // Grid Layout: Adjust columns based on screen orientation
             LazyVerticalGrid(
-                columns = GridCells.Fixed(2), // Creates a 2-column grid
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(8.dp)
+                columns = GridCells.Fixed(gridColumns), // Dynamically set columns
+                modifier = Modifier.fillMaxSize()
             ) {
                 items(playerStates) { playerState ->
                     PlayerSection(
                         state = playerState.value,
-                        onNameChange = { newName ->
-                            playerState.value = playerState.value.copy(name = newName)
-                        },
                         onLifeChange = { change ->
                             playerState.value = playerState.value.copy(
                                 life = (playerState.value.life + change).coerceAtLeast(0)
@@ -153,7 +160,6 @@ fun CommanderLifeCounterApp() {
 @Composable
 fun PlayerSection(
     state: PlayerState,
-    onNameChange: (String) -> Unit,
     onLifeChange: (Int) -> Unit,
     onPoisonChange: (Int) -> Unit
 ) {
@@ -162,16 +168,8 @@ fun PlayerSection(
             .padding(8.dp)
             .border(1.dp, Color.Black, shape = RoundedCornerShape(8.dp))
             .padding(8.dp)
-            .fillMaxSize() // Ensure the section fills its available space in the grid
+            .fillMaxWidth() // Ensure it fills the width in the grid
     ) {
-        // Editable player name without label
-        TextField(
-            value = state.name,
-            onValueChange = onNameChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        )
 
         // Life section with large font
         Row(
@@ -185,7 +183,7 @@ fun PlayerSection(
 
             // Display life in a larger font
             Text(
-                text = "Life: ${state.life}",
+                text = "${state.life}",
                 style = MaterialTheme.typography.headlineLarge, // Make life text larger
                 modifier = Modifier.align(Alignment.CenterVertically)
             )
@@ -196,27 +194,23 @@ fun PlayerSection(
             }
         }
 
-        // Poison section with smaller font
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Decrease poison on the left
-            Row {
-                Button(onClick = { onPoisonChange(-1) }) { Text("-") }
-            }
-
-            // Display poison count in smaller font
-            Text(
-                text = "Poison: ${state.poisonCounters}",
-                style = MaterialTheme.typography.bodyLarge, // Make poison text smaller
-                modifier = Modifier.align(Alignment.CenterVertically)
+        // Display poison count with icon
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                painter = painterResource(id = R.drawable.poisoncounter),
+                contentDescription = "Poison counters",
+                modifier = Modifier.size(48.dp)
             )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = state.poisonCounters.toString(),
+                style = MaterialTheme.typography.bodyLarge
+            )
+        }
 
-            // Increase poison on the right
-            Row {
-                Button(onClick = { onPoisonChange(1) }) { Text("+") }
-            }
+        // Increase poison on the right
+        Row {
+            Button(onClick = { onPoisonChange(1) }) { Text("+") }
         }
     }
 }
