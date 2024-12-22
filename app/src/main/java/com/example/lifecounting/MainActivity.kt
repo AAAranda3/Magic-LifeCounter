@@ -1,49 +1,28 @@
 package com.example.lifecounting
 
+import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.unit.dp
 import com.example.lifecounting.composables.CircularSettingsButton
+import com.example.lifecounting.composables.Layout
+import com.example.lifecounting.composables.PlayerSection
+import com.example.lifecounting.composables.PlayerSettingsScreen
 import com.example.lifecounting.ui.theme.LifeCountingTheme
 
 class MainActivity : ComponentActivity() {
@@ -54,241 +33,128 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             LifeCountingTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+                Scaffold(
+                    modifier = Modifier.fillMaxSize(),
+                ) { innerPadding ->
+                    CommanderLifeCounterApp(modifier = Modifier.padding(innerPadding))
                 }
             }
         }
     }
 }
 
+@SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    LifeCountingTheme {
-        CommanderLifeCounterApp()
-    }
-}
-
-
-@Preview
-@Composable
-fun CommanderLifeCounterApp() {
-    val initialLife = 40
-    var numberOfPlayers by remember { mutableStateOf(4) }
-    var startingLife by remember { mutableStateOf(initialLife) }
+fun CommanderLifeCounterApp(modifier: Modifier = Modifier) {
+    var numberOfPlayers by remember { mutableStateOf(3) } // Change based on the number of players
+    var startingLife by remember { mutableStateOf(PlayerState().life) }
     var currentLayout by remember { mutableStateOf(Layout.GRID) }
 
+    // List of player states with MutableState for each player
     val playerStates = remember {
-        List(numberOfPlayers) { mutableStateOf(PlayerState("Player ${it + 1}", startingLife)) }
+        List(numberOfPlayers) {
+            mutableStateOf(PlayerState())
+        }
     }
 
     var showSettings by remember { mutableStateOf(false) }
 
-    val gridColumns = 2
+    // Use BoxWithConstraints to get the screen size
+    BoxWithConstraints(modifier = modifier.fillMaxSize()) {
+        // Access screen size
+        val screenWidth = maxWidth
+        val screenHeight = maxHeight
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
+        // Logic to determine the number of columns depending on the number of players
+        val columns = when (numberOfPlayers) {
+            in 2..4 -> 2 // If there are 2, 3, or 4 players, use 2 columns
+            else -> 3    // More than 4 players, use 3 columns
+        }
+
+        // Adjust grid orientation when there are exactly 5 players
+        val fivePlayers = numberOfPlayers == 5
+        val threePlayers = numberOfPlayers == 3
+
+        val cellWidth = screenWidth / columns
+
+
+        // Use LazyVerticalGrid for other numbers of players
+        LazyVerticalGrid(
+            columns = GridCells.Fixed(columns), // Fixed number of columns
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(16.dp), // Vertical spacing
+            horizontalArrangement = Arrangement.spacedBy(16.dp) // Horizontal spacing
         ) {
-            Text(
-                text = "Commander Life Counter",
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(8.dp)
-            )
-
-            // Grid Layout: Adjust columns based on screen orientation
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(gridColumns), // Dynamically set columns
-                modifier = Modifier.fillMaxSize()
-            ) {
-                items(playerStates) { playerState ->
+            // Extract the value from each MutableState<PlayerState> and use it
+            items(playerStates) { playerState ->
+                Box(
+                    modifier = Modifier
+                        .then(
+                            if (threePlayers && playerStates.indexOf(playerState) == 1 || fivePlayers && playerStates.indexOf(
+                                    playerState
+                                ) == 2
+                            ) {
+                                Modifier
+                                    .rotate(90f)
+                            } else {
+                                Modifier
+                            }
+                                .align(Alignment.Center)
+                        )
+                        .width(cellWidth) // Adjust width of each cell
+                        .padding(8.dp) // Padding around each cell
+                ) {
                     PlayerSection(
-                        state = playerState.value,
+                        state = playerState.value,  // Access the value of MutableState
                         onLifeChange = { change ->
                             playerState.value = playerState.value.copy(
                                 life = (playerState.value.life + change).coerceAtLeast(0)
                             )
                         },
-                        onPoisonChange = { change ->
+                        onCounterChange = { change ->
                             playerState.value = playerState.value.copy(
                                 poisonCounters = (playerState.value.poisonCounters + change).coerceAtLeast(
                                     0
                                 )
                             )
-                        }
+                        },
+                        modifier = Modifier.fillMaxSize() // Ensure player section fills the cell
                     )
                 }
             }
         }
 
-        // Floating Settings Button
-        CircularSettingsButton(onClick = { showSettings = !showSettings })
-
-        // Show Settings Screen
-        if (showSettings) {
-            PlayerSettingsScreen(
-                initialNumberOfPlayers = numberOfPlayers,
-                initialStartingLife = startingLife,
-                onNumberOfPlayersChange = { newNumberOfPlayers ->
-                    numberOfPlayers = newNumberOfPlayers
-                },
-                onStartingLifeChange = { newStartingLife ->
-                    startingLife = newStartingLife
-                },
-                onLayoutChange = { newLayout ->
-                    currentLayout = newLayout
-                }
-            )
-        }
     }
-}
 
-@Composable
-fun PlayerSection(
-    state: PlayerState,
-    onLifeChange: (Int) -> Unit,
-    onPoisonChange: (Int) -> Unit
-) {
-    Column(
-        modifier = Modifier
-            .padding(8.dp)
-            .border(1.dp, Color.Black, shape = RoundedCornerShape(8.dp))
-            .padding(8.dp)
-            .fillMaxWidth() // Ensure it fills the width in the grid
-    ) {
+// Floating Settings Button
+    CircularSettingsButton(onClick = { showSettings = !showSettings })
 
-        // Life section with large font
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Decrease life on the left
-            Row {
-                Button(onClick = { onLifeChange(-1) }) { Text("-") }
+// Show Settings Screen
+    if (showSettings) {
+        PlayerSettingsScreen(
+            initialNumberOfPlayers = numberOfPlayers,
+            initialStartingLife = startingLife,
+            onNumberOfPlayersChange = { newNumberOfPlayers ->
+                numberOfPlayers = newNumberOfPlayers
+            },
+            onStartingLifeChange = { newStartingLife ->
+                startingLife = newStartingLife
+            },
+            onLayoutChange = { newLayout ->
+                currentLayout = newLayout
             }
-
-            // Display life in a larger font
-            Text(
-                text = "${state.life}",
-                style = MaterialTheme.typography.headlineLarge, // Make life text larger
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
-
-            // Increase life on the right
-            Row {
-                Button(onClick = { onLifeChange(1) }) { Text("+") }
-            }
-        }
-
-        // Display poison count with icon
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                painter = painterResource(id = R.drawable.poisoncounter),
-                contentDescription = "Poison counters",
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = state.poisonCounters.toString(),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
-
-        // Increase poison on the right
-        Row {
-            Button(onClick = { onPoisonChange(1) }) { Text("+") }
-        }
+        )
     }
-}
-
-
-@Composable
-fun PlayerSettingsScreen(
-    initialNumberOfPlayers: Int,
-    initialStartingLife: Int,
-    onNumberOfPlayersChange: (Int) -> Unit,
-    onStartingLifeChange: (Int) -> Unit,
-    onLayoutChange: (Layout) -> Unit // Add this callback
-) {
-    var numberOfPlayers by remember { mutableStateOf(initialNumberOfPlayers) }
-    var startingLife by remember { mutableStateOf(initialStartingLife) }
-    var layout by remember { mutableStateOf(Layout.GRID) } // State for layout
-
-    Column(modifier = Modifier.padding(16.dp)) {
-        Text("Player Settings", style = MaterialTheme.typography.headlineSmall)
-
-        // Number of players setting
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Number of Players:", modifier = Modifier.width(150.dp))
-            TextField(
-                value = numberOfPlayers.toString(),
-                onValueChange = { newValue ->
-                    numberOfPlayers = newValue.toIntOrNull() ?: numberOfPlayers
-                    onNumberOfPlayersChange(numberOfPlayers)
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-        }
-
-        // Starting life setting
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("Starting Life:", modifier = Modifier.width(150.dp))
-            TextField(
-                value = startingLife.toString(),
-                onValueChange = { newValue ->
-                    startingLife = newValue.toIntOrNull() ?: startingLife
-                    onStartingLifeChange(startingLife)
-                },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-            )
-        }
-
-        // Layout selection (Radio buttons)
-        Row {
-            Text("Layout:")
-            RadioButton(
-                selected = layout == Layout.GRID,
-                onClick = {
-                    layout = Layout.GRID
-                    onLayoutChange(layout)
-                }
-            )
-            Text("Grid")
-            RadioButton(
-                selected = layout == Layout.LIST,
-                onClick = {
-                    layout = Layout.LIST
-                    onLayoutChange(layout)
-                }
-            )
-            Text("List")
-        }
-    }
-}
-
-enum class Layout {
-    GRID, LIST
 }
 
 
 data class PlayerState(
-    val name: String,
-    val life: Int,
+    val life: Int = 40,
     val poisonCounters: Int = 0,
-    val commanderDamage: MutableMap<String, Int> = mutableMapOf() // Key: Opponent, Value: Damage
+    val commanderDamage: Int = 0,
+    val energy: Int = 0,
+    val experience: Int = 0,
+    val charge: Int = 0,
+    val loyalty: Int = 0,
+    val time: Int = 0
 )
-
