@@ -3,7 +3,6 @@ package com.example.lifecounting.composables
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -30,34 +29,32 @@ import com.example.lifecounting.R
 
 @Composable
 fun PlayerSection(
-    state: PlayerState,
+    player: PlayerState,
     onLifeChange: (Int) -> Unit,
     onCounterChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally,
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Life section at the top
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            // Decrease life button on the left
-            FilledTonalButton(
-                onClick = { onLifeChange(-1) }) { Text("-") }
 
-            // Display life in a large font
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(16.dp) // Add spacing between items
+        ) {
+            // Decrease life button
+            FilledTonalButton(onClick = { onLifeChange(-1) }) { Text("-") }
+
+            // Display life
             Text(
-                text = "${state.life}",
-                style = MaterialTheme.typography.displayLarge,
-                modifier = Modifier.align(Alignment.CenterVertically)
+                text = "${player.life}",
+                style = MaterialTheme.typography.displayLarge
             )
 
-            // Increase life button on the right
+            // Increase life button
             FilledTonalButton(onClick = { onLifeChange(1) }) { Text("+") }
         }
 
@@ -71,55 +68,54 @@ fun PlayerSection(
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.poisoncounter),
                 contentDescription = "Poison counters",
-                counterValue = state.poisonCounters,
+                counterValue = player.poisonCounters,
                 onCounterChange = onCounterChange
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.commandercounter),
                 contentDescription = "Commander Damage counters",
-                counterValue = state.commanderDamage,
+                counterValue = player.commanderDamage,
                 onCounterChange = onCounterChange
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.energycounter),
                 contentDescription = "Energy counters",
-                counterValue = state.energy,
+                counterValue = player.energy,
                 onCounterChange = onCounterChange
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.experiencecounter),
                 contentDescription = "Experience counters",
-                counterValue = state.poisonCounters,
+                counterValue = player.poisonCounters,
                 onCounterChange = onCounterChange
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.chargecounter),
                 contentDescription = "Charge counters",
-                counterValue = state.poisonCounters,
+                counterValue = player.poisonCounters,
                 onCounterChange = onCounterChange
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.loyaltycounter),
                 contentDescription = "Loyalty counters",
-                counterValue = state.poisonCounters,
+                counterValue = player.poisonCounters,
                 onCounterChange = onCounterChange
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.timecounter),
                 contentDescription = "Time counters",
-                counterValue = state.poisonCounters,
+                counterValue = player.poisonCounters,
                 onCounterChange = onCounterChange
             )
         }
     }
 }
-
 
 
 @Composable
