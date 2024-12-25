@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -21,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -51,7 +53,16 @@ fun CommanderLifeCounterApp(modifier: Modifier = Modifier) {
     var numberOfPlayers by remember { mutableIntStateOf(3) }
     val playerStates = remember {
         List(numberOfPlayers) { index ->
-            mutableStateOf(PlayerState(name = "Player ${index + 1}"))
+            mutableStateOf(
+                PlayerState(
+                    name = "Player ${index + 1}",
+                    playerBackground = when (index % 3) {
+                        0 -> PlayerBackground.DrawableBackground(R.drawable.redmage)
+                        1 -> PlayerBackground.DrawableBackground(R.drawable.eldrazis)
+                        else -> PlayerBackground.DrawableBackground(R.drawable.hydra)
+                    }
+                )
+            )
         }
     }
     var showSettings by remember { mutableStateOf(false) }
@@ -136,7 +147,7 @@ private fun BoxWithConstraintsScope.GridPlayerLayout(
                     .align(Alignment.Center)
                     .padding(8.dp)
             ) {
-                PlayerItem(
+                PlayerStatsView(
                     playerState = playerStates[index],
                     cellWidth = cellWidth,
                     cellHeight = cellHeight
@@ -155,12 +166,12 @@ private fun FivePlayerLayout(
 ) {
     Row(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.weight(1f)) {
-            PlayerItem(
+            PlayerStatsView(
                 playerState = playerStates[0],
                 cellWidth = cellWidth,
                 cellHeight = cellHeight
             )
-            PlayerItem(
+            PlayerStatsView(
                 playerState = playerStates[3],
                 cellWidth = cellWidth,
                 cellHeight = cellHeight
@@ -168,19 +179,22 @@ private fun FivePlayerLayout(
         }
 
         Column(modifier = Modifier.weight(1f)) {
-            PlayerItem(
+            PlayerStatsView(
                 playerState = playerStates[1],
                 cellWidth = cellWidth,
                 cellHeight = cellHeight
             )
-            PlayerItem(
+            PlayerStatsView(
                 playerState = playerStates[4],
                 cellWidth = cellWidth,
                 cellHeight = cellHeight
             )
         }
 
-        Box(
+        PlayerStatsView(
+            playerState = playerStates[2],
+            cellWidth = cellWidth,
+            cellHeight = screenHeight / 1.5f,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
@@ -188,17 +202,9 @@ private fun FivePlayerLayout(
                 .graphicsLayer(
                     rotationZ = -90f,
                     transformOrigin = TransformOrigin.Center
-                )
-                .offset(y = 60.dp)
-        ) {
-            PlayerItem(
-                playerState = playerStates[2],
-                cellWidth = cellWidth,
-                cellHeight = screenHeight / 1.5f
-            )
-        }
-
-
+                ),
+            isRotated = true
+        )
     }
 }
 
@@ -211,19 +217,22 @@ private fun ThreePlayerLayout(
     Row(modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.weight(1f)) {
 
-            PlayerItem(
+            PlayerStatsView(
                 playerState = playerStates[0],
                 cellWidth = cellWidth,
                 cellHeight = cellHeight
             )
-            PlayerItem(
+            PlayerStatsView(
                 playerState = playerStates[2],
                 cellWidth = cellWidth,
                 cellHeight = cellHeight
             )
         }
 
-        Box(
+        PlayerStatsView(
+            playerState = playerStates[1],
+            cellWidth = cellWidth,
+            cellHeight = cellHeight,
             modifier = Modifier
                 .weight(1f)
                 .fillMaxHeight()
@@ -231,15 +240,10 @@ private fun ThreePlayerLayout(
                 .graphicsLayer(
                     rotationZ = -90f,
                     transformOrigin = TransformOrigin.Center
-                )
-        ) {
-            PlayerItem(
-                playerState = playerStates[1],
-                cellWidth = cellWidth,
-                cellHeight = cellHeight,
-                modifier = Modifier.align(Alignment.Center)
-            )
-        }
+                ),
+            isRotated = true
+        )
+
     }
 }
 
@@ -261,7 +265,7 @@ private fun TwoPlayersLayout(
                 )
         ) {
 
-            PlayerItem(
+            PlayerStatsView(
                 playerState = playerStates[0],
                 cellWidth = cellWidth,
                 cellHeight = screenHeight
@@ -278,7 +282,7 @@ private fun TwoPlayersLayout(
                     transformOrigin = TransformOrigin.Center
                 )
         ) {
-            PlayerItem(
+            PlayerStatsView(
                 playerState = playerStates[1],
                 cellWidth = cellWidth,
                 cellHeight = screenHeight
@@ -288,16 +292,38 @@ private fun TwoPlayersLayout(
 }
 
 @Composable
-fun PlayerItem(
+fun PlayerStatsView(
     playerState: MutableState<PlayerState>,
     cellWidth: Dp,
     cellHeight: Dp,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isRotated: Boolean = false
 ) {
     Box(
         modifier = modifier
             .size(cellWidth, cellHeight)
     ) {
+        when (val background = playerState.value.playerBackground) {
+            is PlayerBackground.ColorBackground -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(background.color)
+                )
+            }
+
+            is PlayerBackground.DrawableBackground -> {
+                Image(
+                    painter = painterResource(id = background.resId),
+                    contentDescription = null,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .then(if (isRotated) Modifier.padding(horizontal = 35.dp) else Modifier),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
+            }
+        }
+
         PlayerSection(
             player = playerState.value,
             onLifeChange = { change ->
@@ -319,6 +345,7 @@ fun PlayerItem(
 data class PlayerState(
     val name: String = "Player",
     val life: Int = 40,
+    val playerBackground: PlayerBackground,
     val poisonCounters: Int = 0,
     val commanderDamage: Int = 0,
     val energy: Int = 0,
@@ -327,3 +354,8 @@ data class PlayerState(
     val loyalty: Int = 0,
     val time: Int = 0
 )
+
+sealed class PlayerBackground {
+    data class ColorBackground(val color: Color) : PlayerBackground()
+    data class DrawableBackground(val resId: Int) : PlayerBackground()
+}
