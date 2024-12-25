@@ -1,13 +1,17 @@
 package com.example.lifecounting.composables
 
+import android.content.Context
+import android.widget.Toast
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -21,11 +25,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.lifecounting.PlayerState
 import com.example.lifecounting.R
+import kotlin.coroutines.coroutineContext
 
 @Composable
 fun PlayerSection(
@@ -41,6 +47,15 @@ fun PlayerSection(
             .fillMaxSize()
             .padding(16.dp)
     ) {
+        var showDialog by remember { mutableStateOf(false) }
+        var playerName by remember { mutableStateOf(player.name) }
+
+        EditableText(
+            initialText = player.name,
+            onTextChange = { newName ->
+
+            }
+        )
 
         Row(
             horizontalArrangement = Arrangement.spacedBy(16.dp) // Add spacing between items
@@ -114,6 +129,49 @@ fun PlayerSection(
                 onCounterChange = onCounterChange
             )
         }
+    }
+}
+
+@Composable
+fun EditableText(
+    initialText: String,
+    onTextChange: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var showDialog by remember { mutableStateOf(false) }
+    var text by remember { mutableStateOf(initialText) }
+
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleSmall,
+        modifier = modifier.clickable { showDialog = true }
+    )
+
+    if (showDialog) {
+        AlertDialog(
+            onDismissRequest = { showDialog = false },
+            title = { Text("Edit Text") },
+            text = {
+                TextField(
+                    value = text,
+                    onValueChange = { newText -> text = newText },
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    onTextChange(text) // Trigger callback with updated text
+                    showDialog = false
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                Button(onClick = { showDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
     }
 }
 

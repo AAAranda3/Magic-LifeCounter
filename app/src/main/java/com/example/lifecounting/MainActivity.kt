@@ -6,25 +6,25 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.example.lifecounting.composables.CircularSettingsButton
-import com.example.lifecounting.composables.Layout
 import com.example.lifecounting.composables.PlayerSection
-import com.example.lifecounting.composables.PlayerSettingsScreen
 import com.example.lifecounting.ui.theme.LifeCountingTheme
 
 class MainActivity : ComponentActivity() {
@@ -48,19 +48,25 @@ class MainActivity : ComponentActivity() {
 @SuppressLint("UnusedBoxWithConstraintsScope")
 @Composable
 fun CommanderLifeCounterApp(modifier: Modifier = Modifier) {
-    var numberOfPlayers by remember { mutableIntStateOf(4) }
-    var startingLife by remember { mutableIntStateOf(PlayerState().life) }
-    var currentLayout by remember { mutableStateOf(Layout.GRID) }
-
-
+    var numberOfPlayers by remember { mutableIntStateOf(3) }
     val playerStates = remember {
-        List(numberOfPlayers) {
-            mutableStateOf(PlayerState())
+        List(numberOfPlayers) { index ->
+            mutableStateOf(PlayerState(name = "Player ${index + 1}"))
         }
     }
-
     var showSettings by remember { mutableStateOf(false) }
 
+    PlayerLayout(modifier, numberOfPlayers, playerStates, showSettings)
+}
+
+@Composable
+private fun PlayerLayout(
+    modifier: Modifier,
+    numberOfPlayers: Int,
+    playerStates: List<MutableState<PlayerState>>,
+    showSettings: Boolean
+) {
+    var showSettings1 = showSettings
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
 
         val screenWidth = maxWidth
@@ -72,151 +78,211 @@ fun CommanderLifeCounterApp(modifier: Modifier = Modifier) {
             else -> 3
         }
 
+
         val cellWidth = screenWidth / columns
         val cellHeight = screenHeight / 2
 
-        if (numberOfPlayers == 2) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .fillMaxWidth()
-                        .graphicsLayer(
-                            rotationZ = 90f,
-                            transformOrigin = TransformOrigin.Center
-                        )
-                ) {
+        when (numberOfPlayers) {
+            2 -> TwoPlayersLayout(playerStates, cellWidth, screenHeight)
+            3 -> ThreePlayerLayout(playerStates, cellWidth, cellHeight)
+            5 -> FivePlayerLayout(playerStates, cellWidth, cellHeight, screenHeight)
+            else -> GridPlayerLayout(columns, playerStates, cellWidth, cellHeight)
+        }
 
-                    PlayerItem(
-                        playerState = playerStates[0],
-                        cellWidth = cellWidth,
-                        cellHeight = screenHeight
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .fillMaxWidth()
-                        .graphicsLayer(
-                            rotationZ = -90f,
-                            transformOrigin = TransformOrigin.Center
-                        )
-                ) {
-                    PlayerItem(
-                        playerState = playerStates[1],
-                        cellWidth = cellWidth,
-                        cellHeight = screenHeight
-                    )
-                }
-            }
-        } else if (numberOfPlayers == 3) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.weight(1f)) {
-
-                    PlayerItem(
-                        playerState = playerStates[0],
-                        cellWidth = cellWidth,
-                        cellHeight = cellHeight
-                    )
-                    PlayerItem(
-                        playerState = playerStates[2],
-                        cellWidth = cellWidth,
-                        cellHeight = cellHeight
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .fillMaxWidth()
-                        .graphicsLayer(
-                            rotationZ = -90f,
-                            transformOrigin = TransformOrigin.Center
-                        )
-                ) {
-                    PlayerItem(
-                        playerState = playerStates[1],
-                        cellWidth = cellWidth,
-                        cellHeight = cellHeight,
-                        modifier = Modifier.align(Alignment.Center)
-                    )
-                }
-            }
-        } else if (numberOfPlayers == 5) {
-            Row(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.weight(1f)) {
-                    PlayerItem(
-                        playerState = playerStates[0],
-                        cellWidth = cellWidth,
-                        cellHeight = cellHeight
-                    )
-                    PlayerItem(
-                        playerState = playerStates[3],
-                        cellWidth = cellWidth,
-                        cellHeight = cellHeight
-                    )
-                }
-
-                Column(modifier = Modifier.weight(1f)) {
-                    PlayerItem(
-                        playerState = playerStates[1],
-                        cellWidth = cellWidth,
-                        cellHeight = cellHeight
-                    )
-                    PlayerItem(
-                        playerState = playerStates[4],
-                        cellWidth = cellWidth,
-                        cellHeight = cellHeight
-                    )
-                }
-
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .fillMaxWidth()
-                        .graphicsLayer(
-                            rotationZ = -90f,
-                            transformOrigin = TransformOrigin.Center
-                        )
-                        .offset(y = 60.dp)
-                ) {
-                    PlayerItem(
-                        playerState = playerStates[2],
-                        cellWidth = cellWidth,
-                        cellHeight = screenHeight / 1.5f
-                    )
-                }
-
-
-            }
-        } else {
-            // Layout for 4 o 6 players, using LazyVerticalGrid
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(columns),
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+        if (showSettings1) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp))
+                    .align(Alignment.Center)
             ) {
-                itemsIndexed(playerStates) { index, playerState ->
-                    Box(
-                        modifier = Modifier
-                            .size(cellWidth, cellHeight)
-                            .align(Alignment.Center)
-                            .padding(8.dp)
-                    ) {
-                        PlayerItem(
-                            playerState = playerStates[index],
-                            cellWidth = cellWidth,
-                            cellHeight = cellHeight
-                        )
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .background(Color.White, shape = RoundedCornerShape(16.dp))
+                        .padding(24.dp)
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("Sensor Settings", fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        // Add your settings content here (e.g., sliders, buttons)
+                        Button(onClick = { showSettings1 = false }) {
+                            Text("Close")
+                        }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun BoxWithConstraintsScope.GridPlayerLayout(
+    columns: Int,
+    playerStates: List<MutableState<PlayerState>>,
+    cellWidth: Dp,
+    cellHeight: Dp
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(columns),
+        modifier = Modifier.fillMaxSize(),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+        horizontalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        itemsIndexed(playerStates) { index, playerState ->
+            Box(
+                modifier = Modifier
+                    .size(cellWidth, cellHeight)
+                    .align(Alignment.Center)
+                    .padding(8.dp)
+            ) {
+                PlayerItem(
+                    playerState = playerStates[index],
+                    cellWidth = cellWidth,
+                    cellHeight = cellHeight
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun FivePlayerLayout(
+    playerStates: List<MutableState<PlayerState>>,
+    cellWidth: Dp,
+    cellHeight: Dp,
+    screenHeight: Dp
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.weight(1f)) {
+            PlayerItem(
+                playerState = playerStates[0],
+                cellWidth = cellWidth,
+                cellHeight = cellHeight
+            )
+            PlayerItem(
+                playerState = playerStates[3],
+                cellWidth = cellWidth,
+                cellHeight = cellHeight
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            PlayerItem(
+                playerState = playerStates[1],
+                cellWidth = cellWidth,
+                cellHeight = cellHeight
+            )
+            PlayerItem(
+                playerState = playerStates[4],
+                cellWidth = cellWidth,
+                cellHeight = cellHeight
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .fillMaxWidth()
+                .graphicsLayer(
+                    rotationZ = -90f,
+                    transformOrigin = TransformOrigin.Center
+                )
+                .offset(y = 60.dp)
+        ) {
+            PlayerItem(
+                playerState = playerStates[2],
+                cellWidth = cellWidth,
+                cellHeight = screenHeight / 1.5f
+            )
+        }
+
+
+    }
+}
+
+@Composable
+private fun ThreePlayerLayout(
+    playerStates: List<MutableState<PlayerState>>,
+    cellWidth: Dp,
+    cellHeight: Dp
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.weight(1f)) {
+
+            PlayerItem(
+                playerState = playerStates[0],
+                cellWidth = cellWidth,
+                cellHeight = cellHeight
+            )
+            PlayerItem(
+                playerState = playerStates[2],
+                cellWidth = cellWidth,
+                cellHeight = cellHeight
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .fillMaxWidth()
+                .graphicsLayer(
+                    rotationZ = -90f,
+                    transformOrigin = TransformOrigin.Center
+                )
+        ) {
+            PlayerItem(
+                playerState = playerStates[1],
+                cellWidth = cellWidth,
+                cellHeight = cellHeight,
+                modifier = Modifier.align(Alignment.Center)
+            )
+        }
+    }
+}
+
+@Composable
+private fun TwoPlayersLayout(
+    playerStates: List<MutableState<PlayerState>>,
+    cellWidth: Dp,
+    screenHeight: Dp
+) {
+    Row(modifier = Modifier.fillMaxWidth()) {
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .fillMaxWidth()
+                .graphicsLayer(
+                    rotationZ = 90f,
+                    transformOrigin = TransformOrigin.Center
+                )
+        ) {
+
+            PlayerItem(
+                playerState = playerStates[0],
+                cellWidth = cellWidth,
+                cellHeight = screenHeight
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxHeight()
+                .fillMaxWidth()
+                .graphicsLayer(
+                    rotationZ = -90f,
+                    transformOrigin = TransformOrigin.Center
+                )
+        ) {
+            PlayerItem(
+                playerState = playerStates[1],
+                cellWidth = cellWidth,
+                cellHeight = screenHeight
+            )
         }
     }
 }
@@ -231,7 +297,6 @@ fun PlayerItem(
     Box(
         modifier = modifier
             .size(cellWidth, cellHeight)
-            .padding(8.dp)
     ) {
         PlayerSection(
             player = playerState.value,
@@ -252,6 +317,7 @@ fun PlayerItem(
 
 
 data class PlayerState(
+    val name: String = "Player",
     val life: Int = 40,
     val poisonCounters: Int = 0,
     val commanderDamage: Int = 0,
