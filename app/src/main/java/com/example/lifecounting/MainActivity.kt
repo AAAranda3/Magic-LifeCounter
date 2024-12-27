@@ -8,11 +8,16 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.getValue
@@ -22,10 +27,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.TransformOrigin
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import com.example.lifecounting.composables.PlayerSection
 import com.example.lifecounting.ui.theme.LifeCountingTheme
 
@@ -65,30 +72,27 @@ fun CommanderLifeCounterApp(modifier: Modifier = Modifier) {
             )
         }
     }
-    var showSettings by remember { mutableStateOf(false) }
 
-    PlayerLayout(modifier, numberOfPlayers, playerStates, showSettings)
+    PlayerLayout(modifier, numberOfPlayers, playerStates)
 }
 
 @Composable
 private fun PlayerLayout(
     modifier: Modifier,
     numberOfPlayers: Int,
-    playerStates: List<MutableState<PlayerState>>,
-    showSettings: Boolean
+    playerStates: List<MutableState<PlayerState>>
 ) {
-    var showSettings1 = showSettings
+    var showSettingsDialog by remember { mutableStateOf(false) } // State to manage dialog visibility
     BoxWithConstraints(modifier = modifier.fillMaxSize()) {
 
         val screenWidth = maxWidth
         val screenHeight = maxHeight
 
-
+        // Define the layout depending on the number of players
         val columns = when (numberOfPlayers) {
             in 2..4 -> 2
             else -> 3
         }
-
 
         val cellWidth = screenWidth / columns
         val cellHeight = screenHeight / 2
@@ -100,24 +104,44 @@ private fun PlayerLayout(
             else -> GridPlayerLayout(columns, playerStates, cellWidth, cellHeight)
         }
 
-        if (showSettings1) {
-            Box(
+        // Centered Settings Icon
+        Box(
+            modifier = Modifier
+                .align(Alignment.Center)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Settings, // Replace with your desired icon
+                contentDescription = "Centered Settings Icon",
                 modifier = Modifier
-                    .fillMaxSize()
-                    .background(Color.Black.copy(alpha = 0.5f), shape = RoundedCornerShape(8.dp))
-                    .align(Alignment.Center)
+                    .size(35.dp)
+                    .background(MaterialTheme.colorScheme.secondary, shape = CircleShape)
+                    .clickable {
+                        showSettingsDialog = true // Open the dialog when clicked
+                    }
+            )
+        }
+
+        // Settings Dialog
+        if (showSettingsDialog) {
+            Dialog(
+                onDismissRequest = { showSettingsDialog = false }
             ) {
+                // Dialog content
                 Box(
                     modifier = Modifier
-                        .align(Alignment.Center)
-                        .background(Color.White, shape = RoundedCornerShape(16.dp))
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surface,
+                            shape = RoundedCornerShape(16.dp)
+                        )
                         .padding(24.dp)
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text("Sensor Settings", fontWeight = FontWeight.Bold)
                         Spacer(modifier = Modifier.height(16.dp))
                         // Add your settings content here (e.g., sliders, buttons)
-                        Button(onClick = { showSettings1 = false }) {
+                        Button(onClick = { showSettingsDialog = false }) {
                             Text("Close")
                         }
                     }
@@ -126,6 +150,7 @@ private fun PlayerLayout(
         }
     }
 }
+
 
 @Composable
 private fun BoxWithConstraintsScope.GridPlayerLayout(
@@ -299,11 +324,15 @@ fun PlayerStatsView(
     modifier: Modifier = Modifier,
     isRotated: Boolean = false
 ) {
+    var isDialogVisible by remember { mutableStateOf(false) }
+    var selectedBackground by remember { mutableStateOf<PlayerBackground>(playerState.value.playerBackground) }
+
     Box(
         modifier = modifier
             .size(cellWidth, cellHeight)
     ) {
-        when (val background = playerState.value.playerBackground) {
+        // Background logic
+        when (val background = selectedBackground) {
             is PlayerBackground.ColorBackground -> {
                 Box(
                     modifier = Modifier
@@ -318,27 +347,126 @@ fun PlayerStatsView(
                     contentDescription = null,
                     modifier = Modifier
                         .fillMaxSize()
-                        .then(if (isRotated) Modifier.padding(horizontal = 35.dp) else Modifier),
-                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                        .then(
+                            if (isRotated) Modifier
+                                .padding(horizontal = 35.dp)
+                                .absoluteOffset(y = (-37).dp) else Modifier
+                        ),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                    alpha = 0.6f
                 )
             }
         }
 
+        // Content (PlayerSection) remains the same
         PlayerSection(
-            player = playerState.value,
+            player = playerState,
             onLifeChange = { change ->
                 playerState.value = playerState.value.copy(
                     life = (playerState.value.life + change).coerceAtLeast(0)
                 )
             },
-            onCounterChange = { change ->
-                playerState.value = playerState.value.copy(
-                    poisonCounters = (playerState.value.poisonCounters + change).coerceAtLeast(0)
-                )
-            },
             modifier = Modifier.fillMaxSize()
         )
+
+        // Icon to open the background selection dialog
+        IconButton(
+            onClick = {
+                isDialogVisible = true // Show the dialog when clicked
+            },
+            modifier = Modifier
+                .align(Alignment.TopStart)  // Position icon at the top-left
+                .padding(16.dp)  // Adjust padding if necessary
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.baseline_layers_24),  // Your icon
+                contentDescription = "Change Background",
+                tint = MaterialTheme.colorScheme.tertiary
+            )
+        }
+
+        // Background selection dialog
+        if (isDialogVisible) {
+            BackgroundSelectionDialog(
+                onDismissRequest = { isDialogVisible = false },
+                onBackgroundSelected = { newBackground ->
+                    selectedBackground = newBackground
+                }
+            )
+        }
     }
+}
+
+@Composable
+fun BackgroundSelectionDialog(
+    onDismissRequest: () -> Unit,
+    onBackgroundSelected: (PlayerBackground) -> Unit
+) {
+    val backgroundOptions = listOf(
+        PlayerBackground.ColorBackground(Color.Red),
+        PlayerBackground.ColorBackground(Color.Green),
+        PlayerBackground.ColorBackground(Color.Blue),
+        PlayerBackground.DrawableBackground(resId = R.drawable.demon),
+        PlayerBackground.DrawableBackground(resId = R.drawable.hydra),
+        PlayerBackground.DrawableBackground(resId = R.drawable.redmage),
+        PlayerBackground.DrawableBackground(resId = R.drawable.angelserra),
+        PlayerBackground.DrawableBackground(resId = R.drawable.blackdragon),
+        PlayerBackground.DrawableBackground(resId = R.drawable.reddarkmage),
+        PlayerBackground.DrawableBackground(resId = R.drawable.scificity),
+        PlayerBackground.DrawableBackground(resId = R.drawable.tetriccity),
+        PlayerBackground.DrawableBackground(resId = R.drawable.eldrazis),
+        PlayerBackground.DrawableBackground(resId = R.drawable.greenmage),
+        PlayerBackground.DrawableBackground(resId = R.drawable.whitemages)
+    )
+
+    AlertDialog(
+        onDismissRequest = onDismissRequest,
+        title = { Text("Select Background") },
+        text = {
+            LazyColumn {
+                items(count = backgroundOptions.size, itemContent = { index ->
+                    val background = backgroundOptions[index]
+
+                    Row(
+                        modifier = Modifier
+                            .clickable {
+                                onBackgroundSelected(background)
+                                onDismissRequest()
+                            }
+                            .padding(8.dp)
+                    ) {
+                        // Display a preview of the background option
+                        when (background) {
+                            is PlayerBackground.ColorBackground -> {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .size(height = 80.dp, width = 120.dp)
+                                        .background(background.color)
+                                )
+                            }
+
+                            is PlayerBackground.DrawableBackground -> {
+                                Image(
+                                    painter = painterResource(id = background.resId),
+                                    contentDescription = "Preview",
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .size(height = 80.dp, width = 120.dp),
+                                    contentScale = ContentScale.Crop
+                                )
+                            }
+                        }
+                    }
+                })
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismissRequest) {
+                Text("Close")
+            }
+        }
+    )
 }
 
 

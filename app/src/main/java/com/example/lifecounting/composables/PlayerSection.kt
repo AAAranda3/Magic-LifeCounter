@@ -1,7 +1,5 @@
 package com.example.lifecounting.composables
 
-import android.content.Context
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +16,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,19 +24,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.lifecounting.PlayerState
 import com.example.lifecounting.R
-import kotlin.coroutines.coroutineContext
 
 @Composable
 fun PlayerSection(
-    player: PlayerState,
+    player: MutableState<PlayerState>,
     onLifeChange: (Int) -> Unit,
-    onCounterChange: (Int) -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -47,11 +43,9 @@ fun PlayerSection(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        var showDialog by remember { mutableStateOf(false) }
-        var playerName by remember { mutableStateOf(player.name) }
 
         EditableText(
-            initialText = player.name,
+            initialText = player.value.name,
             onTextChange = { newName ->
 
             }
@@ -65,7 +59,7 @@ fun PlayerSection(
 
             // Display life
             Text(
-                text = "${player.life}",
+                text = "${player.value.life}",
                 style = MaterialTheme.typography.displayLarge
             )
 
@@ -83,50 +77,78 @@ fun PlayerSection(
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.poisoncounter),
                 contentDescription = "Poison counters",
-                counterValue = player.poisonCounters,
-                onCounterChange = onCounterChange
+                counterValue = player.value.poisonCounters,
+                onCounterChange = { change ->
+                    player.value = player.value.copy(
+                        poisonCounters = (player.value.poisonCounters + change).coerceAtLeast(0)
+                    )
+                }
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.commandercounter),
                 contentDescription = "Commander Damage counters",
-                counterValue = player.commanderDamage,
-                onCounterChange = onCounterChange
+                counterValue = player.value.commanderDamage,
+                onCounterChange = { change ->
+                    player.value = player.value.copy(
+                        commanderDamage = (player.value.commanderDamage + change).coerceAtLeast(0)
+                    )
+                }
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.energycounter),
                 contentDescription = "Energy counters",
-                counterValue = player.energy,
-                onCounterChange = onCounterChange
+                counterValue = player.value.energy,
+                onCounterChange = { change ->
+                    player.value = player.value.copy( // Assign the result back to player.value
+                        energy = (player.value.energy + change).coerceAtLeast(0)
+                    )
+                }
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.experiencecounter),
                 contentDescription = "Experience counters",
-                counterValue = player.poisonCounters,
-                onCounterChange = onCounterChange
+                counterValue = player.value.experience,
+                onCounterChange = { change ->
+                    player.value = player.value.copy(
+                        experience = (player.value.experience + change).coerceAtLeast(0)
+                    )
+                }
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.chargecounter),
                 contentDescription = "Charge counters",
-                counterValue = player.poisonCounters,
-                onCounterChange = onCounterChange
+                counterValue = player.value.charge,
+                onCounterChange = { change ->
+                    player.value.copy(
+                        charge = (player.value.charge + change).coerceAtLeast(0)
+                    )
+                }
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.loyaltycounter),
                 contentDescription = "Loyalty counters",
-                counterValue = player.poisonCounters,
-                onCounterChange = onCounterChange
+                counterValue = player.value.loyalty,
+                onCounterChange = { change ->
+                    player.value = player.value.copy(
+                        loyalty = (player.value.loyalty + change).coerceAtLeast(0)
+                    )
+                }
             )
 
             FloatingIconCounter(
                 icon = painterResource(id = R.drawable.timecounter),
                 contentDescription = "Time counters",
-                counterValue = player.poisonCounters,
-                onCounterChange = onCounterChange
+                counterValue = player.value.time,
+                onCounterChange = { change ->
+                    player.value = player.value.copy(
+                        time = (player.value.time + change).coerceAtLeast(0)
+                    )
+                }
             )
         }
     }

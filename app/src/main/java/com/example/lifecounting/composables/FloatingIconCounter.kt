@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.sizeIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
 import androidx.compose.material3.FloatingActionButton
@@ -25,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 
 
 @Composable
@@ -37,32 +40,15 @@ fun FloatingIconCounter(
 ) {
     var showButtons by remember { mutableStateOf(false) }
 
-    Box(modifier = modifier.padding(horizontal = 8.dp)) {
+    Box(
+        modifier = modifier
+            .padding(horizontal = 8.dp)
+            .sizeIn(minWidth = 40.dp, minHeight = 40.dp)
+    ) {
+        // Main content
         Column(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Conditionally add space for buttons
-            if (showButtons) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                ) {
-                    FloatingActionButton(
-                        onClick = { onCounterChange(1) },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Text("+")
-                    }
-
-                    FloatingActionButton(
-                        onClick = { onCounterChange(-1) },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Text("-")
-                    }
-                }
-            }
-
             Icon(
                 painter = icon,
                 contentDescription = contentDescription,
@@ -70,12 +56,39 @@ fun FloatingIconCounter(
                     .size(30.dp)
                     .clickable { showButtons = !showButtons }
             )
-            Spacer(modifier = Modifier.height(4.dp)) // Adjust height between elements
+            Spacer(modifier = Modifier.height(4.dp))
             Text(
                 text = counterValue.toString(),
                 style = MaterialTheme.typography.bodyLarge
             )
         }
+
+
+        if (showButtons) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .offset(x = ((-10).dp), y = (-20).dp)
+                    .zIndex(1f)
+            ) {
+                FloatingActionButton(
+                    onClick = { onCounterChange(1) },
+                    modifier = Modifier.size(25.dp)
+                ) {
+                    Text("+", modifier = Modifier.align(Alignment.CenterVertically))
+                }
+
+                FloatingActionButton(
+                    onClick = { onCounterChange(-1) },
+                    modifier = Modifier.size(25.dp)
+                ) {
+                    Text("-", modifier = Modifier.align(Alignment.CenterVertically))
+                }
+            }
+        }
     }
 }
+
+
 
